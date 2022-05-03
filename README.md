@@ -20,7 +20,6 @@ The input of this package include the below parts:
 - Data set: a data set containing at least 3 columns (row_id, date, label), for calculating the metrics and by dates. If date does not appear, the time method will throw error during run. 
 
 # Output
-Pack of charts to evaluate and understand your model. See the link for more details:https://github.com/rexzhang2014/scoreval/score-eval-example.ipynb
-
+Pack of charts to evaluate and understand your model. See the link for more details:https://github.com/rexzhang2014/scoreval/blob/main/tests/score-eval-example.ipynb
 
 
