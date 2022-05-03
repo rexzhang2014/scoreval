@@ -3,7 +3,6 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import matplotlib.pyplot as plt
 from itertools import product
-
 class ScoreEval() :
     
     def __init__(self, models):
@@ -11,10 +10,16 @@ class ScoreEval() :
         self.models = models
         self.metrics = []
         self.cutset = []
+        self.ivset = []
         self.cmap = ['red', 'green', 'orange', 'blue', 'purple', 'pink', 'grey']
-#     def append_model(self, pred) :
-#         self.scores.append(pred)
-    
+        
+    def _initialize_plot(self, figsize=(16,8)) :
+        
+        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
+        if type(axes) != np.array : 
+            return fig, np.array([axes])
+        return fig, axes
+
     def run_score(self, X, Y, func=None) :
         self.scores = []
         for model in self.models :
@@ -65,9 +70,9 @@ class ScoreEval() :
             
             self.opset.append(pre_df)
             
-    def daily_recall(self, figsize=(16,8)):
+    def daily_recall(self, figsize=(16,8), qtl_list = ['r99', 'r95', 'r90','r50',], x_step=2):
         
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
+        fig, axes = self._initialize_plot(figsize=(figsize[0], figsize[1]*len(self.models)))
         
         for ax, data in zip(axes, self.scores) :
         
@@ -103,12 +108,19 @@ class ScoreEval() :
             stats_bydate['r01'] = stats_bydate.apply(lambda x : x['tp01'] / (x['ap01'] + 0.0001), axis=1)
             
             ax.bar(stats_bydate['date'], stats_bydate['label'], color = 'lightsteelblue')
-            # ax2.set_xlim(-1, stats.shape[0])
-            ax.set_xticks(range(0, stats_bydate['label'].max(), 10))
-            # ax2.set_xticklabels(stats.loc[stats.index.isin(range(0,stats.shape[0], x_step)), by])
-            plt.xticks(rotation=90)
 
+            
+            date_axis = stats_bydate['date']
+            # ax2.set_xlim(-1, stats.shape[0])
+            ax.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
+            plt.xticks(rotation=90)
+            
             ax2 = ax.twinx()
+
+            ax2.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax2.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
+            plt.xticks(rotation=90)
 
             ax2.plot(stats_bydate['date'], stats_bydate['r99'])
             ax2.plot(stats_bydate['date'], stats_bydate['r95'])
@@ -119,36 +131,22 @@ class ScoreEval() :
 #             ax2.plot(stats_bydate['date'], stats_bydate['r10'])
 #             ax2.plot(stats_bydate['date'], stats_bydate['r01' ])
             date_axis = stats_bydate['date']
+
+            handles = []
+            for q in qtl_list :
+
+                hdl, = ax2.plot(stats_bydate['date'], stats_bydate[q])
+                handles.append(hdl)
             
-            ax.bar(stats_bydate['date'], stats_bydate['label'], color = 'lightsteelblue')
-            # ax2.set_xlim(-1, stats.shape[0])
-            ax.set_xticks(range(0, stats_bydate['label'].max(), 10), rotation=90)
-            # ax2.set_xticklabels(stats.loc[stats.index.isin(range(0,stats.shape[0], x_step)), by])
-            plt.xticks(rotation=90)
-
-            ax2 = ax.twinx()
-
-            ax2.plot(stats_bydate['date'], stats_bydate['r99'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r95'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r90'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r75'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r50'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r25'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r10'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r1' ])
-            date_axis = stats_bydate['date']
-
-            ax2.set_xticks([ date_axis[i] for i in range(0, len(date_axis), 2) ])
-
             ax2.set_yticks(np.arange(0,1.02,0.02))
             ax2.grid(axis='y', linestyle='--')
 
-            # plt.legend(handles=[ax], labels="ABCDEFGH", loc='best')
+            plt.legend(handles=handles, labels=qtl_list, loc='best')            
         plt.show()
         
-    def daily_precision(self, figsize=(16,8)):
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
-        
+    def daily_precision(self, figsize=(16,8), qtl_list = ['p99', 'p95', 'p90','p50',], x_step=2):
+        fig, axes = self._initialize_plot(figsize=(figsize[0], figsize[1]*len(self.models)))
+
         for ax, data in zip(axes, self.scores) :
             data1 = data.copy()
             # tp : true positive
@@ -171,46 +169,50 @@ class ScoreEval() :
             data1['sc01'] = data1.apply(lambda x : x['score']>=0.01, axis=1)
             
             stats_bydate = data1.groupby('date').agg(pd.Series.sum).reset_index()
-#             print(stats_bydate.head())
+
             stats_bydate['p99'] = stats_bydate.apply(lambda x : x['tp99'] / (x['sc99'] + 0.0001), axis=1)
             stats_bydate['p95'] = stats_bydate.apply(lambda x : x['tp95'] / (x['sc95'] + 0.0001), axis=1)
             stats_bydate['p90'] = stats_bydate.apply(lambda x : x['tp90'] / (x['sc90'] + 0.0001), axis=1)
-#             stats_bydate['p75'] = stats_bydate.apply(lambda x : x['tp75'] / (x['sc75'] + 0.0001), axis=1)
+            stats_bydate['p75'] = stats_bydate.apply(lambda x : x['tp75'] / (x['sc75'] + 0.0001), axis=1)
             stats_bydate['p50'] = stats_bydate.apply(lambda x : x['tp50'] / (x['sc50'] + 0.0001), axis=1)
-#             stats_bydate['p25'] = stats_bydate.apply(lambda x : x['tp25'] / (x['sc25'] + 0.0001), axis=1)
-#             stats_bydate['p10'] = stats_bydate.apply(lambda x : x['tp10'] / (x['sc10'] + 0.0001), axis=1)
-#             stats_bydate['p01'] = stats_bydate.apply(lambda x : x['tp01'] / (x['sc01'] + 0.0001), axis=1)
+            stats_bydate['p25'] = stats_bydate.apply(lambda x : x['tp25'] / (x['sc25'] + 0.0001), axis=1)
+            stats_bydate['p10'] = stats_bydate.apply(lambda x : x['tp10'] / (x['sc10'] + 0.0001), axis=1)
+            stats_bydate['p01'] = stats_bydate.apply(lambda x : x['tp01'] / (x['sc01'] + 0.0001), axis=1)
             
             ax.bar(stats_bydate['date'], stats_bydate['label'], color = 'lightsteelblue')
-            # ax2.set_xlim(-1, stats.shape[0])
-            ax.set_xticks(range(0, stats_bydate['label'].max(), 10), rotation=90)
-            # ax2.set_xticklabels(stats.loc[stats.index.isin(range(0,stats.shape[0], x_step)), by])
-            plt.xticks(rotation=90)
 
+            
+            date_axis = stats_bydate['date']
+            # ax2.set_xlim(-1, stats.shape[0])
+            ax.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
+         
+            plt.xticks(rotation=90)
+            
             ax2 = ax.twinx()
 
-            ax2.plot(stats_bydate['date'], stats_bydate['p99'])
-            ax2.plot(stats_bydate['date'], stats_bydate['p95'])
-            ax2.plot(stats_bydate['date'], stats_bydate['p90'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['p75'])
-            ax2.plot(stats_bydate['date'], stats_bydate['p50'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['p25'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['p10'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['p01' ])
-            date_axis = stats_bydate['date']
+            ax2.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax2.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
 
-            ax2.set_xticks([ date_axis[i] for i in range(0, len(date_axis), 2) ])
+            plt.xticks(rotation=90)
 
+            handles = []
+            for q in qtl_list :
+
+                hdl, = ax2.plot(stats_bydate['date'], stats_bydate[q])
+                handles.append(hdl)
+            
             ax2.set_yticks(np.arange(0,1.02,0.02))
             ax2.grid(axis='y', linestyle='--')
 
+            plt.legend(handles=handles, labels=qtl_list, loc='best')            
             # plt.legend(handles=[ax], labels="ABCDEFGH", loc='best')
         plt.show()
 
-    def daily_qtls(self, figsize=(16,8)) :
+
+    def daily_qtls(self, figsize=(16,8), qtl_list = ['q99', 'q95', 'q90','q75','q50', 'q25','q10','q01'], x_step=2 ) :
         
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
-        
+        fig, axes = self._initialize_plot(figsize=(figsize[0], figsize[1]*len(self.models)))
         for ax, data in zip(axes, self.scores) :
             stats_bydate = data.groupby('date').agg({
                 'label': pd.Series.sum, 
@@ -221,42 +223,53 @@ class ScoreEval() :
             #     'score': [lambda x: sum(x > 0.99), lambda x: sum(x > 0.9), lambda x: sum(x > 0.8), lambda x: sum(x > 0.99)]
             }).reset_index()
             stats_bydate.columns = [
-                'date', 'label_cnt', 'q99', 'q95', 'q90', 'q75',
+                'date',
+                'label_cnt', 
+                'q99', 
+                'q95', 
+                'q90',
+                'q75',
                 'q50', 
                 'q25',
                 'q10',
-                'q1'
+                'q01'
             ]
             
             ax.bar(stats_bydate['date'], stats_bydate['label_cnt'], color = 'lightsteelblue')
-            # ax2.set_xlim(-1, stats.shape[0])
-            # # x轴刻度设置
-            ax.set_xticks(range(0, stats_bydate['label_cnt'].max(), 10))
+            # ax.set_xticks(range(0, stats_bydate['label_cnt'].max(), 10))
             # ax2.set_xticklabels(stats.loc[stats.index.isin(range(0,stats.shape[0], x_step)), by])
-            plt.xticks(rotation=90)
 
+            date_axis = stats_bydate['date'].unique()
+            
+            ax.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
+         
+            plt.xticks(rotation=90)
+            
             ax2 = ax.twinx()
 
-            ax2.plot(stats_bydate['date'], stats_bydate['q99'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q95'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q90'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q75'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q50'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q25'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q10'])
-            ax2.plot(stats_bydate['date'], stats_bydate['q1' ])
-            date_axis = stats_bydate['date']
+            ax2.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
+            ax2.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
 
-            ax2.set_xticks([ date_axis[i] for i in range(0, len(date_axis), 2) ])
+            plt.xticks(rotation=90)
+
+            handles = []
+            for q in qtl_list :
+
+                hdl, =ax2.plot(stats_bydate['date'], stats_bydate[q])
+                handles.append(hdl)
 
             ax2.set_yticks(np.arange(0,1.02,0.02))
+            ax2.set_ylim(0,1.02)
             ax2.grid(axis='y', linestyle='--')
 
-            # plt.legend(handles=[ax], labels="ABCDEFGH", loc='best')
+
+            plt.legend(handles=handles, labels=qtl_list, loc='best')            
         plt.show()
     
-    def iv(self, bins=20, plot=True, figsize=(10, 10),) :
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
+    def iv(self, bins=20, plot=True, figsize=(10, 10), bin_col='score_bin') :
+
+        fig, axes = self._initialize_plot(figsize=(figsize[0], figsize[1]*len(self.models)))
         
         for ax, data in zip(axes, self.scores) :
             # score distribution
@@ -268,7 +281,7 @@ class ScoreEval() :
             N0 = (data_final_1['label'] == 0).sum()
             N1 = (data_final_1['label'] == 1).sum()
 
-            bin_col = 'score_bin'
+            
             data_final_2 = data_final_1.groupby(bin_col).agg({
                 'label' : [pd.Series.count, pd.Series.sum]
             })
@@ -281,9 +294,11 @@ class ScoreEval() :
                 binbd = data_final_2[bin_col].apply(lambda x: x.right),
             )
 
-            print(data_final_2.head())
+            # print(data_final_2.head())
 
             score_iv = np.sum((data_final_2['inc'] / N1 - (data_final_2['cnt'] - data_final_2['inc'])/ N0) * data_final_2['woe'])
+            
+            self.ivset.append(score_iv)
             
             if plot :
                 cmap = self.cmap
@@ -292,7 +307,8 @@ class ScoreEval() :
                 ax.set_title('IV:{}'.format(score_iv))
     
     def score_distribution(self, bins=20, plot=True, figsize=(10, 10), bin_col='score_bin') :
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
+
+        fig, axes = self._initialize_plot(figsize=(figsize[0], figsize[1]*len(self.models)))
         
         for ax, data in zip(axes, self.scores) :
             # score distribution
@@ -314,10 +330,10 @@ class ScoreEval() :
             )
             
             if plot :
-                cmap = ['red', 'green', 'orange', 'blue', 'purple', 'pink', 'grey']
+                cmap = self.cmap
                 ax.bar( data_final_2.index, data_final_2['cnt'], color=cmap[2])
-                            
-    def plot_cutoff_chart(self, index_col=None, x_step=2, save_path=None, figsize=(20,20)) :
+        
+    def plot_cutoff_chart(self, index_col=None, x_step=2, save_path=None, figsize=(10,10)) :
         
         fig, ax = plt.subplots(1,1, figsize=figsize)
         ax.ylim=(0,1)
@@ -328,18 +344,19 @@ class ScoreEval() :
         for pre_df in self.cutset :
             
             p1, = ax.plot(pre_df.loc[(~pre_df['precision'].isnull()) & (pre_df['precision']>0.0), 'precision'])
-            
-        
             p2, = ax2.plot(pre_df.loc[(~pre_df['recall'].isnull()) & (pre_df['recall']>0.0), 'recall'],  linestyle='--')
             
             handles.extend([p1, p2])
 
         ax.set_ylabel('precesion')
+        ax.set_ylim(0,1.02)
+
         ax.set_xticks(range(0, pre_df.shape[0], x_step))
         ax.grid(which='both', axis='both')
 
         ax2.set_ylabel('recall')
-        ax2.grid(which='both', axis='both')
+        ax2.set_ylim(0,1.02)
+        ax2.grid(which='both', axis='both', linestyle='--')
         
         plt.legend(handles=handles, labels=product([ i for i in range(len(self.models)) ], ['precision', 'recall']), loc='best')            
 
@@ -354,7 +371,7 @@ class ScoreEval() :
             plt.show()
         plt.close()
         
-    def plot_op_chart(self, index_col=None, x_step=2, save_path=None, figsize=(20,20)) :
+    def plot_op_chart(self, index_col=None, x_step=2, save_path=None, figsize=(10,10)) :
         
         fig, ax = plt.subplots(1,1, figsize=figsize)
         ax.ylim=(0,1)
@@ -372,11 +389,17 @@ class ScoreEval() :
             handles.extend([p1, p2])
 
         ax.set_ylabel('precesion')
+        ax.set_ylim(0,1.02)
+        ax.set_xlim(-0.02, 100)
         ax.set_xticks(range(0, pre_df.shape[0], x_step))
         ax.grid(which='both', axis='both')
 
         ax2.set_ylabel('recall')
-        ax2.grid(which='both', axis='both')
+        ax2.set_ylim(0,1.02)
+        
+        ax2.set_xlim(-0.02, 100)
+        ax2.grid(which='both', axis='both', linestyle='--')
+
 
         plt.legend(handles=handles, labels=product([ i for i in range(len(self.models)) ], ['precision', 'recall']), loc='best')            
 
@@ -407,8 +430,10 @@ class ScoreEval() :
             
         ax.set_ylabel('precision')
         ax.set_xlabel('recall')
-
+        ax.set_xlim(0,1.02)
+        ax.set_ylim(0,1.02)
         ax.grid(which='both', axis='both')
+        
         plt.legend(handles=handles, labels=[ i for i in range(len(self.models)) ], loc='best')     
         
         if save_path: 
