@@ -14,12 +14,17 @@ This aims to help machine learning modelers to evaluate the result effictively a
 ## Efficiency
 1. Predefined process & metrics: No need to design and analysis on metrics.
 2. Deal with multiple model scores: The tool will show charts for multiple model scores for comparison. 
+## Installation
+`pip install score-eval`
 # Input
 The input of this package include the below parts:
 - Model: a 'model' that implements the 'predict' method, it comes from most common used modeling tools like sklearn, tensorflow etc. The tool will definitely call model.predict() to get the score on the data set. 
 - Data set: a data set containing at least 3 columns (row_id, date, label), for calculating the metrics and by dates. If date does not appear, the time method will throw error during run. 
 
 # Output
-Pack of charts to evaluate and understand your model. See the link for more details:https://github.com/rexzhang2014/scoreval/blob/main/tests/score-eval-example.ipynb
+Pack of charts to evaluate and understand your model. See the link for more details:  
+https://github.com/rexzhang2014/scoreval/blob/main/tests/score-eval-example.ipynb  
+If it cannot be reached, please try:  
+https://nbviewer.org/github/rexzhang2014/scoreval/blob/main/tests/score-eval-example.ipynb  
 
 

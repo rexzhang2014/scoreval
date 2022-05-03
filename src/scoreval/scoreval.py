@@ -1,8 +1,8 @@
-
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
 from itertools import product
+
 class ScoreEval() :
     '''
     Main entrence for score evaluation. Create an instance of ScoreEval and run methods step by step. 
