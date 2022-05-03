@@ -11,7 +11,7 @@ This aims to help machine learning modelers to evaluate the result effictively a
     2. Precision daily: show target precision above a score cut-off.
     3. Recall daily: show target coverage above a score cut-off.
 
-## Efficiencye
+## Efficiency
 1. Predefined process & metrics: No need to design and analysis on metrics.
 2. Deal with multiple model scores: The tool will show charts for multiple model scores for comparison. 
 # Input

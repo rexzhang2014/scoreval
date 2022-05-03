@@ -1,17 +1,19 @@
 
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np 
+import pandas as pd 
 import matplotlib.pyplot as plt
 from itertools import product
 class ScoreEval() :
-    
+    '''
+    Main entrence for score evaluation. Create an instance of ScoreEval and run methods step by step. 
+    '''
     def __init__(self, models):
         self.scores = []
         self.models = models
         self.metrics = []
         self.cutset = []
         self.ivset = []
-        self.cmap = ['red', 'green', 'orange', 'blue', 'purple', 'pink', 'grey']
+        self.cmap = ['red', 'green', 'orange', 'blue', 'purple', 'pink', 'grey'] * 5
         
     def _initialize_plot(self, figsize=(16,8)) :
         
@@ -21,6 +23,11 @@ class ScoreEval() :
         return fig, axes
 
     def run_score(self, X, Y, func=None) :
+        '''
+        X: The input data for your model. 
+        Y: The input label of your data set. 
+        func: customized predict function, take every model in self.models and X as input. 
+        '''
         self.scores = []
         for model in self.models :
             if func :
@@ -34,7 +41,12 @@ class ScoreEval() :
             self.scores.append(final)
     
     def score_cut(self, cut_step=0.02, buckets=100):
-
+        '''
+        Must run after self.run_score. cutoff and operating point will be generated. 
+        Pre-assume the score is in interval [0,1], both result will be produced and saved in self attributes.
+        cut_step: the step length by equal-width cut
+        buckets: number of bins by equal-freq cut
+        '''
         self.cutset = []
         self.opset  = []
         
@@ -47,7 +59,7 @@ class ScoreEval() :
                 topc = eval_df.loc[eval_df['score'] >= c, :]
                 pre  = pd.Series([c, (topc['label'] == 1).sum() / topc.shape[0], (topc['label'] == 1).sum() / (eval_df['label']==1).sum(), topc.shape[0], (topc['label'] == 1).sum() ])
                 pre_cut = pre_cut.append(pre, ignore_index=True)
-        #         acc  = pd.Series([c, (topc['truth'] == topc['score']).sum() / topc.shape[0], topc.shape[0]])
+                
             pre_cut.columns = ['cutoff', 'precision', 'recall', 'sequence_captured', '1_seq_captured']
             self.cutset.append(pre_cut)
             
@@ -63,7 +75,7 @@ class ScoreEval() :
                 pre  = pd.Series([(topi['label'] == 1).sum() / i])
                 rec  = pd.Series([(topi['label'] == 1).sum() / (eval_df1['label'] == 1).sum()])
                 rlt0 = pd.concat([pre, rec], axis=1)
-            #     print(rlt0.head())
+                
                 pre_df = pre_df.append(rlt0, ignore_index=True)
             pre_df.columns=['precision', 'recall']
             pre_df = pre_df.reset_index()
@@ -97,7 +109,7 @@ class ScoreEval() :
             data1['ap01'] = data1.apply(lambda x : x['label']==1, axis=1)
             
             stats_bydate = data1.groupby('date').agg(pd.Series.sum).reset_index()
-#             print(stats_bydate.head())
+            
             stats_bydate['r99'] = stats_bydate.apply(lambda x : x['tp99'] / (x['ap99'] + 0.0001), axis=1)
             stats_bydate['r95'] = stats_bydate.apply(lambda x : x['tp95'] / (x['ap95'] + 0.0001), axis=1)
             stats_bydate['r90'] = stats_bydate.apply(lambda x : x['tp90'] / (x['ap90'] + 0.0001), axis=1)
@@ -111,7 +123,7 @@ class ScoreEval() :
 
             
             date_axis = stats_bydate['date']
-            # ax2.set_xlim(-1, stats.shape[0])
+            
             ax.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
             ax.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
             plt.xticks(rotation=90)
@@ -122,14 +134,6 @@ class ScoreEval() :
             ax2.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
             plt.xticks(rotation=90)
 
-            ax2.plot(stats_bydate['date'], stats_bydate['r99'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r95'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r90'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r75'])
-            ax2.plot(stats_bydate['date'], stats_bydate['r50'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r25'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r10'])
-#             ax2.plot(stats_bydate['date'], stats_bydate['r01' ])
             date_axis = stats_bydate['date']
 
             handles = []
@@ -183,7 +187,6 @@ class ScoreEval() :
 
             
             date_axis = stats_bydate['date']
-            # ax2.set_xlim(-1, stats.shape[0])
             ax.set_xticks([ i for i in range(0, len(date_axis), x_step) ])
             ax.set_xticklabels([ date_axis[i] for i in range(0, len(date_axis), x_step) ])
          
@@ -206,7 +209,6 @@ class ScoreEval() :
             ax2.grid(axis='y', linestyle='--')
 
             plt.legend(handles=handles, labels=qtl_list, loc='best')            
-            # plt.legend(handles=[ax], labels="ABCDEFGH", loc='best')
         plt.show()
 
 
@@ -236,8 +238,6 @@ class ScoreEval() :
             ]
             
             ax.bar(stats_bydate['date'], stats_bydate['label_cnt'], color = 'lightsteelblue')
-            # ax.set_xticks(range(0, stats_bydate['label_cnt'].max(), 10))
-            # ax2.set_xticklabels(stats.loc[stats.index.isin(range(0,stats.shape[0], x_step)), by])
 
             date_axis = stats_bydate['date'].unique()
             
@@ -293,8 +293,6 @@ class ScoreEval() :
                 woe = lambda x: np.log(x['inc'] / N1) - np.log((x['cnt'] - x['inc'] ) / N0),
                 binbd = data_final_2[bin_col].apply(lambda x: x.right),
             )
-
-            # print(data_final_2.head())
 
             score_iv = np.sum((data_final_2['inc'] / N1 - (data_final_2['cnt'] - data_final_2['inc'])/ N0) * data_final_2['woe'])
             
@@ -382,7 +380,6 @@ class ScoreEval() :
         for pre_df in self.opset :
             
             p1, = ax.plot(pre_df.loc[(~pre_df['precision'].isnull()) & (pre_df['precision']>0.0), 'precision'])
-            
         
             p2, = ax2.plot(pre_df.loc[(~pre_df['recall'].isnull()) & (pre_df['recall']>0.0), 'recall'],  linestyle='--')
             
