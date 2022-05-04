@@ -17,8 +17,8 @@ class ScoreEval() :
         
     def _initialize_plot(self, figsize=(16,8)) :
         
-        fig, axes = plt.subplots(len(self.models),1, figsize=(figsize[0], figsize[1]*len(self.models)))
-        if type(axes) != np.array : 
+        fig, axes = plt.subplots(len(self.models),1, figsize=figsize)
+        if type(axes) != np.ndarray : 
             return fig, np.array([axes])
         return fig, axes
 
