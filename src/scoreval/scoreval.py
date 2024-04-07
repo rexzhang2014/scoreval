@@ -60,6 +60,7 @@ class ScoreEval() :
         func: customized predict function, take every model in self.models and X as input. 
         '''
         self.scores = []
+
         for model in self.models :
             if func :
                 pred = func(model, X)
@@ -340,7 +341,7 @@ class ScoreEval() :
             ax.set_xticklabels(data_final_2['binbd'])
             ax.set_title(f'{model.name} IV:{score_iv}')
 
-            self._save(fig, plt, save_path)
+        self._save(fig, plt, save_path)
 
     def plot_histogram(self, bins=20, bin_col='score_bin', label_col='label', plot=True, figsize=(10, 10), save_path=None) :
 
